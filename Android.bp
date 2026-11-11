@@ -1,19 +1,52 @@
+
+//
+// TWRP Bash configuration
+//
+
+filegroup {
+    name: "bash-etc-files",
+    srcs: ["etc/*"],
+    exclude_srcs: ["etc/bashrc"],
+}
+
+genrule {
+    name: "bash-twrp-bashrc-gen",
+    srcs: ["etc/bashrc"],
+    out: ["bashrc"],
+    cmd: "sed " +
+         "-e 's/ro.lineage.device/ro.product.device/' " +
+         "-e '/export TERM/d' " +
+         "$(in) > $(out)",
+}
+
 prebuilt_etc {
     name: "bash-etc",
-    srcs: ["etc/*"],
+    srcs: [":bash-etc-files"],
     sub_dir: "bash",
-    system_ext_specific: true,
+    recovery: true,
 }
+
+prebuilt_etc {
+    name: "bash-twrp-bashrc",
+    src: ":bash-twrp-bashrc-gen",
+    filename: "bashrc",
+    sub_dir: "bash",
+    recovery: true,
+}
+
+//
+// Bash
+//
 
 cc_binary {
     name: "bash",
+
     srcs: [
         "builtins/alias.c",
         "builtins/bashgetopt.c",
         "builtins/bind.c",
         "builtins/break.c",
         "builtins/builtin.c",
-        "builtins/builtins.c",
         "builtins/caller.c",
         "builtins/cd.c",
         "builtins/colon.c",
@@ -57,11 +90,17 @@ cc_binary {
         "builtins/ulimit.c",
         "builtins/umask.c",
         "builtins/wait.c",
+
+        "builtins/builtin.c",
+        "builtins/builtins.c",
+        "builtins/caller.c",
+
         "lib/glob/glob.c",
         "lib/glob/gmisc.c",
         "lib/glob/smatch.c",
         "lib/glob/strmatch.c",
         "lib/glob/xmbsrtowcs.c",
+
         "lib/readline/bind.c",
         "lib/readline/callback.c",
         "lib/readline/colors.c",
@@ -93,8 +132,10 @@ cc_binary {
         "lib/readline/undo.c",
         "lib/readline/util.c",
         "lib/readline/vi_mode.c",
+
         "lib/sh/*.c",
         "lib/tilde/*.c",
+
         "alias.c",
         "array.c",
         "arrayfunc.c",
@@ -139,6 +180,7 @@ cc_binary {
         "xmalloc.c",
         "y.tab.c",
     ],
+
     cflags: [
         "-DHAVE_CONFIG_H",
         "-DPROGRAM=\"bash\"",
@@ -154,16 +196,29 @@ cc_binary {
         "-Wno-int-conversion",
         "-Wno-missing-field-initializers",
     ],
+
     c_std: "c17",
+
     local_include_dirs: [
         "include",
         "lib",
     ],
+
     shared_libs: [
         "libncurses",
     ],
+
     required: [
         "bash-etc",
+        "bash-twrp-bashrc",
     ],
-    system_ext_specific: true,
+
+    recovery: true,
+}
+
+phony {
+    name: "bash_twrp",
+    required: [
+        "bash",
+    ],
 }
